@@ -8,6 +8,7 @@
     <script src="js/talents.js"></script>
     <script src="js/load_presets.js"></script>
     <script src="js/gems.js"></script>
+    <script src="js/local-storage-saver.js"></script>
     <meta name="site_description" content="WoW TBC simulator for DPS Warriors">
 
     <!-- Global site tag (gtag.js) - Google Analytics -->
@@ -313,7 +314,67 @@
         cursor: pointer;
         transition: border-color .2s ease-in;
     }
-</style>
+
+    /* Style rules for local browser storage dialog */
+
+    .saving-dialog {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #bfbfbf;
+        padding: 8px;
+        display: flex;
+        z-index: 11;
+        flex-direction: column;
+        align-items: center;
+        max-height: 50%;
+    }
+
+    .saving-dialog * {
+        margin-bottom: 8px;
+    }
+
+    .saving-dialog button {
+        max-width: 50%;
+    }
+
+    .saving-dialog input {
+        width: 100%;
+    }
+
+    .saving-dialog .saving-controls {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+    }
+
+    .loading-sets {
+        overflow-y: auto;
+        overflow-x: hidden;
+        width: 100%;
+    }
+
+    .loading-sets div {
+        padding: 8px;
+    }
+
+    .loading-sets div:hover {
+        background-color: rgb(160, 160, 160);
+        cursor: pointer;
+    }
+
+    .saving-backdrop {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        z-index: 10;
+    }
+
+    </style>
 </head>
 
 <body style="background-color:#bfbfbf;"
@@ -406,6 +467,11 @@
 
     <p class="select-title">Save config to file:</p><br>
     <button onclick="save_button()">Save current config</button>
+    <br><br>
+
+    <p class="select-title">Browser storage:</p><br>
+    <button onclick="renderSave()">Save current config</button>
+    <button onclick="renderLoad()">Load a config</button>
     <br><br>
 
     <button type="button" class="collapsible" id="armor_n_wep">Armor and Weapons</button>
@@ -5107,6 +5173,21 @@
         }
     }
 
+    function loadContents(rawLog) {
+        let splitlog = rawLog.split("\n");
+        for (let item of splitlog) {
+            let dd_name = item.split(" ");
+            // console.log(dd_name[0]);
+            if (dd_name.length === 2) {
+                // console.log(dd_name[1]);
+                selectElement(dd_name[0], dd_name[1])
+            } else {
+                // console.log(dd_name[1] + " " + dd_name[2]);
+                selectElement(dd_name[0], dd_name[1] + " " + dd_name[2])
+            }
+        }
+    }
+
     function load_file() {
         let file = document.getElementById("myFile");
         let myFile = file.files[0];
@@ -5127,25 +5208,13 @@
 
         reader.readAsText(myFile);
         reader.onload = function () {
-            let rawLog = reader.result;
-            let splitlog = rawLog.split("\n");
-            for (let item of splitlog) {
-                let dd_name = item.split(" ");
-                // console.log(dd_name[0]);
-                if (dd_name.length === 2) {
-                    // console.log(dd_name[1]);
-                    selectElement(dd_name[0], dd_name[1])
-                } else {
-                    // console.log(dd_name[1] + " " + dd_name[2]);
-                    selectElement(dd_name[0], dd_name[1] + " " + dd_name[2])
-                }
-            }
+            loadContents(reader.result);
         };
         setTimeout(displayTalentBootup, 200);
         setTimeout(calcTotalTalents, 200);
     }
 
-    function save_button() {
+    function generateFileContents() {
         read_inputs();
         let file_content = "";
         for (let i = 0; i < armor.length; i++) {
@@ -5200,6 +5269,11 @@
 
         file_content += "race_dd" + " " + race_string + "\n";
 
+        return file_content;
+    }
+
+    function save_button() {
+        const file_content = generateFileContents();
         let uriContent = "data:application/octet-stream," + encodeURIComponent(file_content);
         saveAs(uriContent, "tbc-dps-warrior-sim-config.txt")
     }
